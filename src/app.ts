@@ -6,7 +6,6 @@ import cardRouter from './routes/cards'
 import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import IncorrectData from 'errors/incorrectData';
 import DataNotFound from 'errors/dataNotFound';
-import DefaultError from 'errors/defaultError';
 
 declare global {
   namespace Express {
@@ -36,21 +35,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use('/users', userRouter);
 app.use('/cards', cardRouter);
-
-
-
-app.use(express.static(path.join(__dirname, 'public')));
-
-const errorHandler: ErrorRequestHandler = (err: Error | IncorrectData | DataNotFound, req, res, next) => {
-  if (err instanceof IncorrectData || err instanceof DataNotFound) {
-    res.status(err.statusCode).send({ message: err.message });
-  } else {
-    res.status(500).send({ message: 'Internal Server Error' });
-  }
-};
-
-
-app.use(errorHandler);
 
 app.listen(3000, () => {
   console.log('Ссылка на сервер');
