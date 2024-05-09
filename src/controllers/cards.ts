@@ -1,9 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import Card from '../models/card'
-import IncorrectData from 'errors/incorrectData';
-import DataNotFound from 'errors/dataNotFound';
-import { handleErrors } from 'errors/handleErrors';
-
+import { handleErrors } from '../errors/handleErrors';
+import { HTTP_STATUS_CODES } from '../constants/constants';
 
 
 export const createCard = (req: Request, res: Response, next: NextFunction) => {
@@ -34,7 +32,9 @@ export const findAllCards = (req: Request, res: Response, next: NextFunction) =>
 export const deleteCardById = (req: Request, res: Response, next: NextFunction) => {
   return Card.findByIdAndDelete(req.params.cardId)
     .then((card) => {
-
+      if (!card) {
+        return res.status(HTTP_STATUS_CODES.NOT_FOUND).json({ message: 'Карточка не найдена' });
+      }
       res.send({ data: card })
     })
     .catch((error) => {
@@ -47,7 +47,9 @@ export const addLikeById = (req: Request, res: Response, next: NextFunction) => 
   if (req.user) {
     return Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: req.user._id } }, { new: true })
       .then((card) => {
-
+        if (!card) {
+          return res.status(HTTP_STATUS_CODES.NOT_FOUND).json({ message: 'Карточка не найдена' });
+        }
         res.send({ data: card })
       })
       .catch((error) => {
@@ -60,7 +62,9 @@ export const deleteLikeById = (req: Request, res: Response, next: NextFunction) 
   if (req.user) {
     return Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user._id } }, { new: true })
       .then((card) => {
-
+        if (!card) {
+          return res.status(HTTP_STATUS_CODES.NOT_FOUND).json({ message: 'Карточка не найдена' });
+        }
         res.send({ data: card })
       })
       .catch((error) => {
