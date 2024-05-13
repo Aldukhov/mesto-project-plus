@@ -3,10 +3,12 @@ import Card from '../models/card'
 import { handleErrors } from '../errors/handleErrors';
 import { HTTP_STATUS_CODES } from '../constants/constants';
 
+interface IRequest extends Request {
+  user?: { _id: string };
+}
 
-export const createCard = (req: Request, res: Response, next: NextFunction) => {
-  // Вызываем функцию для проверки ошибок перед созданием карточки
 
+export const createCard = (req: IRequest, res: Response, next: NextFunction) => {
     Card.create({
       name: req.body.name,
       link: req.body.link,
@@ -43,9 +45,9 @@ export const deleteCardById = (req: Request, res: Response, next: NextFunction) 
 }
 
 
-export const addLikeById = (req: Request, res: Response, next: NextFunction) => {
+export const addLikeById = (req: IRequest, res: Response, next: NextFunction) => {
   if (req.user) {
-    return Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: req.user._id } }, { new: true })
+    return Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: req.user._id} }, { new: true })
       .then((card) => {
         if (!card) {
           return res.status(HTTP_STATUS_CODES.NOT_FOUND).json({ message: 'Карточка не найдена' });
@@ -58,7 +60,7 @@ export const addLikeById = (req: Request, res: Response, next: NextFunction) => 
   }
 }
 
-export const deleteLikeById = (req: Request, res: Response, next: NextFunction) => {
+export const deleteLikeById = (req: IRequest, res: Response, next: NextFunction) => {
   if (req.user) {
     return Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user._id } }, { new: true })
       .then((card) => {
