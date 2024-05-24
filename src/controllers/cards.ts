@@ -1,14 +1,13 @@
-import { NextFunction, Request, Response } from 'express';
-import Card from '../models/card'
-import { handleErrors } from '../errors/handleErrors';
-import { HTTP_STATUS_CODES } from '../constants/constants';
+import { NextFunction, Request, Response } from "express";
+import Card from "../models/card";
+import { body, param } from "express-validator";
+import { ForbiddenError, NotFoundError } from "../errors/customErrors";
+import { IRequest } from "../constants/types";
 
-interface IRequest extends Request {
-  user?: { _id: string };
-}
-
-
-export const createCard = (req: IRequest, res: Response, next: NextFunction) => {
+export const createCard = [
+  body("name").notEmpty().withMessage("Имя обязательно"),
+  body("link").isURL().withMessage("Некорректный URL"),
+  (req: IRequest, res: Response, next: NextFunction) => {
     Card.create({
       name: req.body.name,
       link: req.body.link,
@@ -16,61 +15,93 @@ export const createCard = (req: IRequest, res: Response, next: NextFunction) => 
     })
       .then((card) => res.send({ data: card }))
       .catch((error) => {
-        handleErrors(error, req, res, next);
+        next(error);
       });
-};
+  },
+];
 
-export const findAllCards = (req: Request, res: Response, next: NextFunction) => {
+export const findAllCards = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   return Card.find({})
     .then((card) => {
-
-      res.send({ data: card })
+      res.send({ data: card });
     })
     .catch((error) => {
-      handleErrors(error, req, res, next);
+      next(error);
     });
-}
+};
 
-export const deleteCardById = (req: Request, res: Response, next: NextFunction) => {
-  return Card.findByIdAndDelete(req.params.cardId)
-    .then((card) => {
+export const deleteCardById = [
+  param("cardId")
+    .isMongoId()
+    .withMessage("Некорректный идентификатор карточки"),
+  async (req: IRequest, res: Response, next: NextFunction) => {
+    try {
+      const card = await Card.findOne({ _id: req.params.cardId });
       if (!card) {
-        return res.status(HTTP_STATUS_CODES.NOT_FOUND).json({ message: 'Карточка не найдена' });
+        throw new NotFoundError("Карточка не найдена");
       }
-      res.send({ data: card })
-    })
-    .catch((error) => {
-      handleErrors(error, req, res, next);
-    });
-}
 
+      if (card.owner?.valueOf() !== req.user?._id) {
+        throw new ForbiddenError("Вы не можете удалить чужую карточку");
+      }
+      const deleteCard = await Card.findByIdAndDelete(req.params.cardId);
 
-export const addLikeById = (req: IRequest, res: Response, next: NextFunction) => {
-  if (req.user) {
-    return Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: req.user._id} }, { new: true })
-      .then((card) => {
+      res.send({ message: "Карточка удалена успешно", data: deleteCard });
+    } catch (error) {
+      next(error);
+    }
+  },
+];
+
+export const addLikeById = [
+  param("cardId")
+    .isMongoId()
+    .withMessage("Некорректный идентификатор карточки"),
+  async (req: IRequest, res: Response, next: NextFunction) => {
+    if (req.user) {
+      try {
+        const card = await Card.findByIdAndUpdate(
+          req.params.cardId,
+          { $addToSet: { likes: req.user._id } },
+          { new: true }
+        );
+
         if (!card) {
-          return res.status(HTTP_STATUS_CODES.NOT_FOUND).json({ message: 'Карточка не найдена' });
+          throw new NotFoundError("Карточка не найдена");
         }
-        res.send({ data: card })
-      })
-      .catch((error) => {
-        handleErrors(error, req, res, next);
-      });
-  }
-}
 
-export const deleteLikeById = (req: IRequest, res: Response, next: NextFunction) => {
-  if (req.user) {
-    return Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user._id } }, { new: true })
-      .then((card) => {
+        res.send({ data: card });
+      } catch (error) {
+        next(error);
+      }
+    }
+  },
+];
+
+export const deleteLikeById = [
+  param("cardId")
+    .isMongoId()
+    .withMessage("Некорректный идентификатор карточки"),
+  async (req: IRequest, res: Response, next: NextFunction) => {
+    if (req.user) {
+      try {
+        const card = await Card.findByIdAndUpdate(
+          req.params.cardId,
+          { $pull: { likes: req.user._id } },
+          { new: true }
+        );
         if (!card) {
-          return res.status(HTTP_STATUS_CODES.NOT_FOUND).json({ message: 'Карточка не найдена' });
+          throw new NotFoundError("Карточка не найдена");
         }
-        res.send({ data: card })
-      })
-      .catch((error) => {
-        handleErrors(error, req, res, next);
-      });
-  }
-}
+
+        res.send({ data: card });
+      } catch (error) {
+        next(error);
+      }
+    }
+  },
+];
