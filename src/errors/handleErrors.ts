@@ -5,6 +5,7 @@ import { IRequest } from "../constants/types";
 import {
   AuthenticationError,
   BadRequestError,
+  ConflictError,
   NotFoundError,
 } from "./customErrors";
 
@@ -42,6 +43,12 @@ export const handleErrors = (
     return res.status(HTTP_STATUS_CODES.UNAUTHORIZED).json({
       message: error.message,
       errorCode: "AuthenticationError",
+      requestBody: req.body,
+    });
+  } else if (error instanceof ConflictError) {
+    return res.status(HTTP_STATUS_CODES.CONFLICT).json({
+      message: error.message,
+      errorCode: "ConflictError",
       requestBody: req.body,
     });
   } else {

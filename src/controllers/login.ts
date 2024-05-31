@@ -5,24 +5,22 @@ import { body } from "express-validator";
 import jwt from "jsonwebtoken";
 import { checkValid } from "../utils/checkValid";
 
-export const login = [
-  body("email").isEmail().withMessage("Некорректный email"),
-  body("password")
-    .isLength({ min: 6 })
-    .withMessage("Пароль должен быть не менее 6 символов"),
-  async (req: IRequest, res: Response, next: NextFunction) => {
-    checkValid(req, res, next);
-    const { email, password } = req.body;
-    try {
-      const user = await User.findUserByCredentials(email, password, next);
-      if (user) {
-        const token = jwt.sign({ _id: user._id }, "super-strong-secret", {
-          expiresIn: "7d",
-        });
-        res.send({ token });
-      }
-    } catch (error) {
-      next(error);
+export const login = async (
+  req: IRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  checkValid(req, res, next);
+  const { email, password } = req.body;
+  try {
+    const user = await User.findUserByCredentials(email, password, next);
+    if (user) {
+      const token = jwt.sign({ _id: user._id }, "super-strong-secret", {
+        expiresIn: "7d",
+      });
+      res.send({ token });
     }
-  },
-];
+  } catch (error) {
+    next(error);
+  }
+};

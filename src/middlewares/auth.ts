@@ -7,7 +7,7 @@ interface ISessionRequest extends Request {
   user?: string | JwtPayload;
 }
 
-const handleAuthError = (req: ISessionRequest) => {
+const handleAuthError = () => {
   throw new AuthenticationError("Необходима авторизация");
 };
 
@@ -19,7 +19,7 @@ export default (req: ISessionRequest, res: Response, next: NextFunction) => {
   const { authorization } = req.headers;
 
   if (!authorization || !authorization.startsWith("Bearer ")) {
-    return handleAuthError(req);
+    return handleAuthError();
   }
 
   const token = extractBearerToken(authorization);
@@ -28,7 +28,7 @@ export default (req: ISessionRequest, res: Response, next: NextFunction) => {
   try {
     payload = jwt.verify(token, "super-strong-secret");
   } catch (err) {
-    return handleAuthError(req);
+    return handleAuthError();
   }
 
   req.user = payload;
